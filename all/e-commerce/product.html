@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Single Product | Broccoli</title>
+  <link rel="stylesheet" href="./css/bootstrap.min.css" />
+  <link rel="stylesheet" href="./css/style.css" />
+  <style>
+
+  </style>
+</head>
+
+<body class="by">
+  <div class="container">
+    <h1 id="product_name_box">Loading...</h1>
+    <img src="" alt="Product image" id="thumbnail" />
+    <h3>Gallery</h3>
+    <div id="gallary"></div>
+  </div>
+
+  <footer>
+    © <span id="year"></span> · Designed and developed with passion by
+    <strong>Yossef Mohamed</strong>.
+  </footer>
+
+  <script>
+    // تحديث السنة التلقائية في الفوتر
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // تغيير الصورة الرئيسية عند الضغط على صورة فرعية
+    function replace_photo(url) {
+      thumbnail.src = url;
+    }
+
+    // جلب بيانات المنتج من API حسب الـ id في الـ URL
+    async function get_product() {
+      try {
+        const id = location.search.replace("?id=", "").trim();
+        if (!id) {
+          product_name_box.innerText = "No product ID found!";
+          return;
+        }
+
+        const api = `https://dummyjson.com/products/${id}`;
+        const res = await fetch(api);
+        const product = await res.json();
+
+        product_name_box.innerText = product.title;
+        thumbnail.src = product.thumbnail;
+
+        // عرض الصور في الجاليري
+        gallary.innerHTML = "";
+        product.images.forEach((image) => {
+          gallary.innerHTML += `
+            <img src="${image}" alt="Product image" onclick="replace_photo('${image}')"/>
+          `;
+        });
+      } catch (err) {
+        console.error(err);
+        product_name_box.innerText = "Failed to load product.";
+      }
+    }
+
+    get_product();
+  </script>
+</body>
+</html>
