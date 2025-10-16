@@ -1,0 +1,251 @@
+*{
+    padding: 0%;
+    margin: 0;
+    box-sizing: border-box;
+}
+a{
+    text-decoration: none;
+    color: white;
+    
+}
+body{
+    background-color: #232323;
+    overflow-x: hidden;
+    color: white;
+    font-family: "Iceberg", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+}
+
+.navbar{
+    padding: 15px 18px !important;
+}
+.logo{
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.848) !important;
+}
+.nav-item{
+    margin: 0 10px;
+}
+.nav-item .nav-link{
+   color: rgba(255, 255, 255, 0.92) ; 
+   font-size: 14px;
+   font-weight: 400;
+   transition: color 1s , border-bottom 1s;
+}
+/* .btn-navbar{
+    text-decoration: none;
+    border: 1px solid rgb(36, 193, 255);
+    display: inline-block;
+    padding: 10px 43px;
+    color: white;
+    background-color: rgb(36, 193, 255);
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 400;
+} */
+.btn{
+    background-color:rgb(36, 193, 255) !important;
+}
+.nav-item .nav-link:hover{
+    color: orange ;
+    border-bottom: 1px solid orange;
+    
+ }
+ .ho1{
+    transition: all 1s;
+ }
+.ho1:hover{
+    background-color: transparent !important;
+    color: white;
+    border: 1px solid rgb(36, 193, 255) !important ;
+    
+}
+.ho2{
+    background-color: transparent !important;
+    color: rgb(0, 0, 0);
+    border: 1px solid rgb(36, 193, 255) !important; 
+    transition: all 1s;
+}
+.ho2:hover{
+    
+    background-color:  rgb(36, 193, 255) !important; 
+}
+
+.headphone {
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 100% {
+        transform: translateY(0); 
+    }
+    40% {
+        transform: translateY(-40px); 
+    }
+    60% {
+        transform: translateY(-20px); 
+    }
+    80% {
+        transform: translateY(-10px); 
+    }
+    
+}
+.earphon{
+    box-shadow: 20px 25px 10px rgb(68, 66, 66);
+}
+.abouttt{
+    color: #f57d3e;
+    position: relative;
+    font-size: bold;
+    font-weight: 400;
+}
+.abouttt::before{
+    content: '';
+    position:absolute ;
+    bottom: 0;
+    left: 20px;
+    background-color: #f57d3e;
+    width: 50px;
+    height: 3%;
+}
+.butn{
+    padding: 10px 20px;
+    font-size: 16px;
+    color: #000000; /* لون النص */
+    background-color: transparent; /* اللون الأساسي للخلفية */
+    border: 2px solid #f57d3e;
+    border-radius: 5px;
+    text-align: left;
+    position: relative;
+    overflow: hidden; /* لضمان عدم تجاوز الخلفية الحدود */
+    transition: color 0.8s ease; /* تأثير على لون النص */
+    z-index: 1; /* جعل النص في طبقة أعلى */
+    margin-bottom: 2%;
+}
+.butn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: #f57d3e; /* اللون الذي يظهر عند التمرير */
+    transition: all 0.8s ease;
+    z-index: -1; /* وضع الخلفية في طبقة تحت النص */
+}
+.butn:hover::before {
+    left: 0; /* يتحرك من اليسار إلى اليمين */
+}
+.butn:hover {
+    color: #fff; /* يبقى النص باللون الأبيض */
+    border-color: #f57d3e; /* تغيير لون الحدود */
+}
+
+.carousel-control-prev-icon{
+    position: relative;
+    left: -80%;
+    border: 3px solid black;
+    border-radius: 50%;
+}
+.carousel-control-next-icon{
+    position: relative;
+    right: -80%;
+    border: 3px solid black;
+    border-radius: 50%;
+}
+
+.title{
+    position: relative;
+    color: #f57d3e;
+    padding: 5px;
+}
+.title::before{
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 8px;
+    background-color: #f57d3e;
+    width: 50px;
+    height: 3%;
+}
+.card-title{
+    color: #f57d3e;
+    padding: 4px;
+    border-bottom: #f57d3e solid 3px;
+}
+.card{
+    background-color: #232323;
+}
+.card-text{
+    color: #fff;
+}
+.cardbutton{
+    background-color: transparent;
+    color: #f57d3e;
+    border: none;
+    transition: all 2s;
+    padding-left: 6%;
+}
+.lft{
+    left: -15%;
+    width: 20%;
+}
+.rht{
+    right: -15%;
+    width: 20%;
+}
+
+/* البطاقة */
+.testimonial-card {
+    background: linear-gradient(135deg, #ff7e5f, #feb47b); /* الخلفية المتدرجة */
+    border-radius: 10px; 
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+    padding-top: 60px;
+    position: relative;
+    transition: transform 0.3s; 
+  }
+  
+  .testimonial-card:hover {
+    transform: translateY(-10px); 
+  }
+  /* الصورة */
+  .image-container {
+    position: absolute;
+    top: -50px; /* تجعل الصورة فوق البطاقة */
+    left: 0%;
+    transform: translateX(-50%);
+    border-radius: 50%; /* جعل الحاوية دائرية */
+    padding: 5px; /* حواف داخلية */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* إضافة ظل */
+    width: 120px; /* ضبط عرض الحاوية */
+    height: 120px; /* ضبط ارتفاع الحاوية */
+  }
+  
+  .image-container img {
+    width: 120px; 
+    height: 120px;
+    border-radius: 50%; 
+    object-fit: cover;
+  }
+  
+  /* النص */
+  h5 {
+    margin-top: 10px;
+    font-size: 1.25rem;
+    font-weight: bold;
+  }
+  .frm{
+    background-color: #1312122c;
+  }
+  .send{
+    background-color: #f57d3e !important;
+    transition: all 1s;
+  }
+  .send:hover{
+    background-color: transparent !important;
+    color: white;
+    border: 1px solid #f57d3e !important ;
+  }
+  
