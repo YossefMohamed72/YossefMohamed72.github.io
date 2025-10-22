@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام حضور/غياب  </title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0284c7">
+
+  <!-- TailwindCSS محلي (حمّل الملف من https://cdn.tailwindcss.com واحفظه باسم tailwind.js) -->
+  <script src="tailwind.js"></script>
+  <script>
+    // تخصيص Tailwind لو حبيت تضيف ألوان إضافية
+    window.tailwind = window.tailwind || {};
+    tailwind.config = {
+      theme: { extend: { boxShadow: { soft: '0 10px 30px rgba(0,0,0,0.07)' } } }
+    }
+  </script>
+
+  <style>
+    @media print { .no-print { display:none !important; } .print\:block { display:block !important; } }
+  </style>
+
+  <!-- تسجيل Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(() => console.log('✅ Service Worker registered'))
+          .catch(err => console.error('❌ SW failed', err));
+      });
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-sky-50 via-white to-cyan-50 text-gray-900">
+  <!-- NAVBAR -->
+  <header class=" backdrop-blur bg-white/70 border-b border-slate-200/60">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="icons/icon-192.png" alt="logo" class="w-10 h-10 rounded-2xl shadow-soft"/>
+        <div>
+          <h1 class="text-lg md:text-xl font-extrabold tracking-tight">نظام حضور وغياب  </h1>
+          <p class="text-xs text-gray-500">كابتن ابراهيم مجدي</p>
+        </div>
+      </div>
+      <div class="no-print flex items-center gap-2">
+        <button id="exportCsvBtn" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:bg-emerald-700 transition">اكسيل</button>
+        <button id="exportJsonBtn" class="px-3 py-2 rounded-xl bg-sky-600 text-white text-sm hover:bg-sky-700 transition">نسخة احتياطية (JSON)</button>
+        <label class="px-3 py-2 rounded-xl bg-slate-800 text-white text-sm hover:bg-slate-900 transition cursor-pointer">
+          استيراد JSON<input id="importJsonInput" type="file" accept="application/json" class="hidden" />
+        </label>
+        <button id="installBtn" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm hover:bg-indigo-700 transition hidden">تثبيت التطبيق</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="max-w-7xl mx-auto px-4 pb-24 pt-6">
+    <!-- Tabs -->
+    <div class="no-print mb-6 flex flex-wrap gap-2">
+      <button data-tab="attendance" class="tab-btn px-4 py-2 rounded-2xl bg-sky-600 text-white shadow-soft">الحضور اليوم</button>
+      <button data-tab="students" class="tab-btn px-4 py-2 rounded-2xl bg-white border hover:bg-slate-50">اللاعبون</button>
+      <button data-tab="reports" class="tab-btn px-4 py-2 rounded-2xl bg-white border hover:bg-slate-50">التقارير</button>
+      <button onclick="window.print()" class="ml-auto px-4 py-2 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 no-print">طباعة</button>
+    </div>
+
+    <!-- Summary Cards -->
+    <section id="kpis" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+      <div class="bg-white rounded-2xl p-4 shadow-soft border">
+        <p class="text-xs text-gray-500">عدد اللاعبين</p>
+        <p id="kpiTotalStudents" class="text-2xl font-bold">0</p>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-soft border">
+        <p class="text-xs text-gray-500">حاضر اليوم</p>
+        <p id="kpiPresentToday" class="text-2xl font-bold text-emerald-600">0</p>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-soft border">
+        <p class="text-xs text-gray-500">غياب اليوم</p>
+        <p id="kpiAbsentToday" class="text-2xl font-bold text-rose-600">0</p>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-soft border">
+        <p class="text-xs text-gray-500">تأخير/إذن</p>
+        <p id="kpiLateExcusedToday" class="text-2xl font-bold text-amber-600">0</p>
+      </div>
+    </section>
+
+    <!-- Attendance TAB -->
+    <section id="tab-attendance" class="rounded-3xl bg-white border shadow-soft overflow-hidden">
+      <div class="p-4 md:p-6 border-b bg-slate-50/60">
+        <div class="grid md:grid-cols-4 gap-3 md:gap-4 items-end">
+          <div>
+            <label class="text-sm text-gray-600">تاريخ الحصة</label>
+            <input id="attDate" type="date" class="w-full mt-1 rounded-xl border px-3 py-2" />
+          </div>
+          <div>
+            <label class="text-sm text-gray-600">الفترة</label>
+            <select id="attSession" class="w-full mt-1 rounded-xl border px-3 py-2">
+              <option>صباحية</option>
+              <option>مسائية</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm text-gray-600">المجموعة</label>
+            <select id="attGroup" class="w-full mt-1 rounded-xl border px-3 py-2"></select>
+          </div>
+          <div class="flex gap-2">
+            <button id="markAllPresent" class="w-full rounded-xl bg-emerald-600 text-white px-3 py-2 hover:bg-emerald-700">تحديد الكل حاضر</button>
+            <button id="clearMarks" class="w-full rounded-xl bg-slate-200 px-3 py-2 hover:bg-slate-300">مسح</button>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <input id="searchInput" placeholder="بحث بالاسم" class="rounded-xl border px-3 py-2 w-60" />
+          <span class="text-xs text-gray-500">عدد الصف: <b id="rowCount">0</b></span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-100 text-gray-600">
+            <tr>
+              <th class="p-3 text-right">#</th>
+              <th class="p-3 text-right">الاسم</th>
+              <th class="p-3 text-right">المجموعة</th>
+              <th class="p-3 text-right">الحالة</th>
+              <th class="p-3 text-right">ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceBody"></tbody>
+        </table>
+      </div>
+
+      <div class="p-4 md:p-6 flex flex-wrap gap-2 border-t bg-slate-50/60">
+        <button id="saveAttendance" class="rounded-xl bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">حفظ الحضور</button>
+        <button id="deleteAttendance" class="rounded-xl bg-rose-600 text-white px-4 py-2 hover:bg-rose-700">حذف سجل هذا اليوم</button>
+      </div>
+    </section>
+
+    <!-- Students TAB -->
+    <section id="tab-students" class="hidden rounded-3xl bg-white border shadow-soft overflow-hidden">
+      <div class="p-4 md:p-6 border-b bg-slate-50/60 flex flex-wrap gap-2 items-end">
+        <div class="grid md:grid-cols-3 gap-3 w-full md:w-auto md:flex-1">
+          <div>
+            <label class="text-sm text-gray-600">الاسم</label>
+            <input id="stuName" class="w-full mt-1 rounded-xl border px-3 py-2" placeholder="اسم اللاعب" />
+          </div>
+          <div>
+            <label class="text-sm text-gray-600">المجموعة</label>
+            <input id="stuGroup" class="w-full mt-1 rounded-xl border px-3 py-2" placeholder="مثال: ناشئين A" />
+          </div>
+          <div class="flex gap-2 items-end">
+            <button id="addStudent" class="w-full rounded-xl bg-sky-600 text-white px-4 py-2 hover:bg-sky-700">إضافة لاعب</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 ml-auto">
+          <input id="studentSearch" placeholder="بحث" class="rounded-xl border px-3 py-2" />
+          <select id="groupFilter" class="rounded-xl border px-3 py-2"><option value="">كل المجموعات</option></select>
+        </div>
+      </div>
+
+      <div class="p-4 md:p-6">
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3" id="studentsGrid"></div>
+      </div>
+    </section>
+
+    <!-- Reports TAB -->
+    <section id="tab-reports" class="hidden rounded-3xl bg-white border shadow-soft overflow-hidden">
+      <div class="p-4 md:p-6 border-b bg-slate-50/60 grid md:grid-cols-4 gap-3">
+        <div>
+          <label class="text-sm text-gray-600">من تاريخ</label>
+          <input id="repFrom" type="date" class="w-full mt-1 rounded-xl border px-3 py-2" />
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">إلى تاريخ</label>
+          <input id="repTo" type="date" class="w-full mt-1 rounded-xl border px-3 py-2" />
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">المجموعة</label>
+          <select id="repGroup" class="w-full mt-1 rounded-xl border px-3 py-2"></select>
+        </div>
+        <div class="flex items-end gap-2">
+          <button id="genReport" class="w-full rounded-xl bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">توليد تقرير</button>
+        </div>
+      </div>
+
+      <div class="p-4 md:p-6">
+        <div id="reportArea" class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-100 text-gray-600">
+              <tr>
+                <th class="p-3 text-right">الاسم</th>
+                <th class="p-3 text-right">المجموعة</th>
+                <th class="p-3 text-right">عدد الحصص</th>
+                <th class="p-3 text-right">حاضر</th>
+                <th class="p-3 text-right">غياب</th>
+                <th class="p-3 text-right">تأخير/إذن</th>
+                <th class="p-3 text-right">نسبة الحضور</th>
+              </tr>
+            </thead>
+            <tbody id="reportBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="text-center text-xs text-gray-500 py-6">
+   © 2025 · Designed and developed with passion by Youssef Mohamed.
+  </footer>
+
+  <script>
+    // ====== بيانات في التخزين المحلي ======
+    const STORAGE_KEYS = { students: 'swim_students_v1', attendance: 'swim_attendance_v1' };
+    const STATES = [
+      { key: 'present', label: 'حاضر', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      { key: 'absent', label: 'غائب', cls: 'bg-rose-50 text-rose-700 border-rose-200' },
+      { key: 'late', label: 'متأخر', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+      { key: 'excused', label: 'إذن', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+      { key: 'none', label: '—', cls: 'bg-slate-50 text-slate-600 border-slate-200' },
+    ];
+
+    let students = load(STORAGE_KEYS.students) || [];
+    let attendance = load(STORAGE_KEYS.attendance) || []; // [{date, session, group, rows:[{id,status,notes}]}]
+
+    function save(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+    function load(key){ try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
+
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const uid = () => Math.random().toString(36).slice(2,9);
+    const uniqueGroups = () => Array.from(new Set(students.map(s=>s.group).filter(Boolean))).sort();
+    function todayISO(){ const d = new Date(); const off = d.getTimezoneOffset(); const d2 = new Date(d - off*60*1000); return d2.toISOString().slice(0,10); }
+
+    const attDate = $('#attDate'); const attSession = $('#attSession'); const attGroup = $('#attGroup'); const attendanceBody = $('#attendanceBody'); const rowCount = $('#rowCount');
+    const stuName = $('#stuName'); const stuGroup = $('#stuGroup'); const addStudentBtn = $('#addStudent'); const studentsGrid = $('#studentsGrid'); const studentSearch = $('#studentSearch'); const groupFilter = $('#groupFilter');
+    const kpiTotalStudents = $('#kpiTotalStudents'); const kpiPresentToday = $('#kpiPresentToday'); const kpiAbsentToday = $('#kpiAbsentToday'); const kpiLateExcusedToday = $('#kpiLateExcusedToday');
+    const repFrom = $('#repFrom'); const repTo = $('#repTo'); const repGroup = $('#repGroup'); const reportBody = $('#reportBody');
+
+    const tabs = { attendance: $('#tab-attendance'), students: $('#tab-students'), reports: $('#tab-reports') };
+    $$('.tab-btn').forEach(btn=>{ btn.addEventListener('click',()=>{ const key = btn.dataset.tab; Object.values(tabs).forEach(el=>el.classList.add('hidden')); tabs[key].classList.remove('hidden'); $$('.tab-btn').forEach(b=>b.classList.remove('bg-sky-600','text-white')); btn.classList.add('bg-sky-600','text-white'); if(key==='students') renderStudents(); if(key==='attendance') renderAttendanceTable(); }) })
+
+    function renderStudents(){
+      const q = (studentSearch.value||'').trim().toLowerCase();
+      const g = groupFilter.value || '';
+      const list = students.filter(s => !q || s.name.toLowerCase().includes(q)).filter(s => !g || s.group === g);
+      studentsGrid.innerHTML = list.map(s => `
+        <div class="border rounded-2xl p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-sky-100 grid place-items-center text-sky-700 font-bold">${s.name.slice(0,1)}</div>
+          <div class="flex-1">
+            <p class="font-semibold">${s.name}</p>
+            <p class="text-xs text-gray-500">${s.group || 'بدون مجموعة'}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="px-3 py-1 text-xs rounded-lg bg-slate-200 hover:bg-slate-300" onclick="editStudent('${s.id}')">تعديل</button>
+            <button class="px-3 py-1 text-xs rounded-lg bg-rose-600 text-white hover:bg-rose-700" onclick="deleteStudent('${s.id}')">حذف</button>
+          </div>
+        </div>
+      `).join('');
+      const groups = uniqueGroups();
+      groupFilter.innerHTML = '<option value="">كل المجموعات</option>' + groups.map(g=>`<option>${g}</option>`).join('');
+      attGroup.innerHTML = groups.map(g=>`<option>${g}</option>`).join('');
+      repGroup.innerHTML = '<option value="">كل المجموعات</option>' + groups.map(g=>`<option>${g}</option>`).join('');
+      kpiTotalStudents.textContent = students.length;
+    }
+
+    addStudentBtn.addEventListener('click', ()=>{ const name = (stuName.value||'').trim(); const group = (stuGroup.value||'').trim(); if(!name){ alert('من فضلك اكتب اسم اللاعب'); return; } const s = { id: uid(), name, group }; students.push(s); save(STORAGE_KEYS.students, students); stuName.value = ''; stuGroup.value=''; renderStudents(); renderAttendanceTable(); });
+
+    window.deleteStudent = id => { if(!confirm('حذف هذا اللاعب؟')) return; students = students.filter(s=>s.id!==id); save(STORAGE_KEYS.students, students); renderStudents(); renderAttendanceTable(); };
+    window.editStudent = id => { const s = students.find(x=>x.id===id); const name = prompt('تعديل الاسم:', s.name); if(name===null) return; const group = prompt('تعديل المجموعة:', s.group || ''); if(group===null) return; s.name = name.trim(); s.group = group.trim(); save(STORAGE_KEYS.students, students); renderStudents(); renderAttendanceTable(); };
+
+    studentSearch.addEventListener('input', renderStudents); groupFilter.addEventListener('change', renderStudents);
+
+    function getSessionKey(date, session, group){ return `${date}|${session}|${group||''}`; }
+    function getRecord(date, session, group){ const key = getSessionKey(date, session, group); return attendance.find(a=>getSessionKey(a.date,a.session,a.group)===key); }
+    function ensureRecord(date, session, group){ let rec = getRecord(date, session, group); if(!rec){ rec = { date, session, group, rows: [] }; attendance.push(rec); } return rec; }
+
+    function renderAttendanceTable(){
+      if(!attDate.value) attDate.value = todayISO();
+      if(!attSession.value) attSession.value = 'صباحية';
+      const groups = uniqueGroups(); if(groups.length && !groups.includes(attGroup.value)) attGroup.value = groups[0] || '';
+      const date = attDate.value; const session = attSession.value; const group = attGroup.value;
+      const list = students.filter(s => !group || s.group === group);
+      const rec = ensureRecord(date, session, group);
+      list.forEach(s=>{ if(!rec.rows.find(r=>r.id===s.id)) rec.rows.push({ id: s.id, status: 'none', notes: '' }); });
+      rec.rows = rec.rows.filter(r => list.find(s=>s.id===r.id));
+      const q = ($('#searchInput').value||'').trim().toLowerCase();
+      const displayRows = rec.rows.map(r => ({...r, student: students.find(s=>s.id===r.id)})).filter(x => !q || x.student.name.toLowerCase().includes(q));
+      attendanceBody.innerHTML = displayRows.map((x, i) => {
+        const st = STATES.find(s=>s.key===x.status) || STATES.find(s=>s.key==='none');
+        return `
+          <tr class="border-b hover:bg-slate-50">
+            <td class="p-3 align-top">${i+1}</td>
+            <td class="p-3 align-top font-medium">${x.student.name}</td>
+            <td class="p-3 align-top text-gray-500">${x.student.group||''}</td>
+            <td class="p-3 align-top">
+              <div class="flex flex-wrap gap-2">
+                ${STATES.map(s=>`
+                  <button class="px-3 py-1 rounded-xl border text-xs ${s.cls} ${s.key===x.status?'ring-2 ring-offset-1 ring-slate-300':''}"
+                    onclick="setStatus('${x.student.id}','${s.key}')">${s.label}</button>
+                `).join('')}
+              </div>
+            </td>
+            <td class="p-3 align-top">
+              <input class="w-full rounded-xl border px-3 py-2 text-sm" placeholder="ملاحظة"
+                value="${x.notes?.replace(/\"/g,'&quot;')||''}" onchange="setNote('${x.student.id}', this.value)" />
+            </td>
+          </tr>`;
+      }).join('');
+      rowCount.textContent = displayRows.length; updateKPIs(); save(STORAGE_KEYS.attendance, attendance);
+    }
+
+    function setStatus(studentId, status){ const rec = ensureRecord(attDate.value, attSession.value, attGroup.value); const row = rec.rows.find(r=>r.id===studentId); if(row){ row.status = status; save(STORAGE_KEYS.attendance, attendance); renderAttendanceTable(); } }
+    function setNote(studentId, note){ const rec = ensureRecord(attDate.value, attSession.value, attGroup.value); const row = rec.rows.find(r=>r.id===studentId); if(row){ row.notes = note; save(STORAGE_KEYS.attendance, attendance); } }
+
+    $('#markAllPresent').addEventListener('click', ()=>{ const rec = ensureRecord(attDate.value, attSession.value, attGroup.value); rec.rows.forEach(r=>r.status='present'); save(STORAGE_KEYS.attendance, attendance); renderAttendanceTable(); });
+    $('#clearMarks').addEventListener('click', ()=>{ const rec = ensureRecord(attDate.value, attSession.value, attGroup.value); rec.rows.forEach(r=>{ r.status='none'; r.notes=''; }); save(STORAGE_KEYS.attendance, attendance); renderAttendanceTable(); });
+    $('#saveAttendance').addEventListener('click', ()=>{ save(STORAGE_KEYS.attendance, attendance); alert('تم حفظ الحضور لهذا اليوم.'); updateKPIs(); });
+    $('#deleteAttendance').addEventListener('click', ()=>{ const key = getSessionKey(attDate.value, attSession.value, attGroup.value); const before = attendance.length; attendance = attendance.filter(a=>getSessionKey(a.date,a.session,a.group)!==key); if(attendance.length < before){ save(STORAGE_KEYS.attendance, attendance); renderAttendanceTable(); alert('تم حذف السجل.'); } else { alert('لا يوجد سجل مطابق لحذفه.'); } });
+    $('#searchInput').addEventListener('input', renderAttendanceTable); attDate.addEventListener('change', renderAttendanceTable); attSession.addEventListener('change', renderAttendanceTable); attGroup.addEventListener('change', renderAttendanceTable);
+
+    function updateKPIs(){ kpiTotalStudents.textContent = students.length; const rec = getRecord(attDate.value, attSession.value, attGroup.value); let p=0,a=0,l=0; if(rec){ rec.rows.forEach(r=>{ if(r.status==='present') p++; else if(r.status==='absent') a++; else if(r.status==='late' || r.status==='excused') l++; }) } kpiPresentToday.textContent = p; kpiAbsentToday.textContent = a; kpiLateExcusedToday.textContent = l; }
+
+    $('#genReport').addEventListener('click', generateReport);
+    function generateReport(){ const from = repFrom.value ? new Date(repFrom.value) : null; const to = repTo.value ? new Date(repTo.value+'T23:59:59') : null; const group = repGroup.value || ''; const agg = new Map(); const within = att => { const d = new Date(att.date); if(from && d < from) return false; if(to && d > to) return false; if(group && att.group !== group) return false; return true; }; attendance.filter(within).forEach(att=>{ att.rows.forEach(r=>{ let a = agg.get(r.id); if(!a) a = { present:0, absent:0, le:0, total:0 }; if(r.status==='present') a.present++; else if(r.status==='absent') a.absent++; else if(r.status==='late' || r.status==='excused') a.le++; a.total++; agg.set(r.id, a); }) }); const rows = Array.from(agg.entries()).map(([id,stats])=>{ const s = students.find(x=>x.id===id); const pct = stats.total ? Math.round((stats.present / stats.total) * 100) : 0; return { name: s?.name||'محذوف', group: s?.group||'', total: stats.total, present: stats.present, absent: stats.absent, le: stats.le, pct }; }).sort((a,b)=>b.pct-a.pct || a.name.localeCompare(b.name, 'ar')); reportBody.innerHTML = rows.map(r=>`<tr class="border-b"><td class="p-3">${r.name}</td><td class="p-3 text-gray-500">${r.group}</td><td class="p-3">${r.total}</td><td class="p-3 text-emerald-700">${r.present}</td><td class="p-3 text-rose-700">${r.absent}</td><td class="p-3 text-amber-700">${r.le}</td><td class="p-3 font-semibold">${r.pct}%</td></tr>`).join(''); }
+
+    function download(filename, text){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'})); a.download = filename; a.click(); URL.revokeObjectURL(a.href); }
+    $('#exportJsonBtn').addEventListener('click', ()=>{ const payload = { students, attendance }; download(`backup-swim-${Date.now()}.json`, JSON.stringify(payload, null, 2)); });
+    $('#importJsonInput').addEventListener('change', (e)=>{ const file = e.target.files?.[0]; if(!file) return; const reader = new FileReader(); reader.onload = () => { try { const data = JSON.parse(reader.result); if(data.students && data.attendance){ students = data.students; attendance = data.attendance; save(STORAGE_KEYS.students, students); save(STORAGE_KEYS.attendance, attendance); renderStudents(); renderAttendanceTable(); generateReport(); alert('تم الاستيراد بنجاح'); } else { alert('ملف غير صالح'); } } catch(err){ alert('فشل الاستيراد: '+err.message); } }; reader.readAsText(file); e.target.value = ''; });
+    $('#exportCsvBtn').addEventListener('click', ()=>{ const rec = getRecord(attDate.value, attSession.value, attGroup.value); if(!rec){ alert('لا يوجد سجل لهذا اليوم'); return; } const head = ['الاسم','المجموعة','الحالة','ملاحظات','التاريخ','الفترة']; const lines = [head.join(',')]; rec.rows.forEach(r=>{ const s = students.find(x=>x.id===r.id); const label = (STATES.find(x=>x.key===r.status)||{label:''}).label; lines.push([ '"'+(s?.name||'')+'"', '"'+(s?.group||'')+'"', '"'+label+'"', '"'+(r.notes||'')+'"', rec.date, rec.session ].join(',')); }); download(`attendance-${rec.date}-${rec.session}.csv`, lines.join('')); });
+
+    (function init(){
+      // زر تثبيت التطبيق (قبل التثبيت)
+      let deferredPrompt = null;
+      const installBtn = document.getElementById('installBtn');
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e; installBtn.classList.remove('hidden');
+      });
+      installBtn?.addEventListener('click', async ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if(outcome==='accepted'){ installBtn.classList.add('hidden'); } deferredPrompt = null; });
+
+      document.getElementById('attDate').value = todayISO();
+      renderStudents();
+      renderAttendanceTable();
+      const d = new Date(); const first = new Date(d.getFullYear(), d.getMonth(), 1); const last = new Date(d.getFullYear(), d.getMonth()+1, 0);
+      document.getElementById('repFrom').value = first.toISOString().slice(0,10);
+      document.getElementById('repTo').value = last.toISOString().slice(0,10);
+    })();
+  </script>
+</body>
+</html>
