@@ -1,2 +1,3 @@
 User-agent: *
-Disallow: /
+Allow: /
+Sitemap: https://yossefmohamed72.github.io/all/agrivito/sitemap.xml
