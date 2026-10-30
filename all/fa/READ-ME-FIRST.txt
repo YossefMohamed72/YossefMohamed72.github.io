@@ -1,7 +1,7 @@
 ﻿دليل رفع موقع FA
 ==================
 
-1) GitHub Pages — FA-GitHub-Pages.zip
+1) GitHub Pages — FA-GitHub-Pages-v2.zip
 فك الضغط على جهازك. ارفع المحتويات داخل مجلد fa في مصدر نشر مستودع all.
 يجب أن يصبح الملف في fa/index.html، وليس fa/fa/index.html.
 العنوان المستهدف: https://yossefmohamed72.github.io/all/fa/
@@ -13,7 +13,7 @@
 النسخة مضبوطة على /all/fa/ للصور وملفات JavaScript وCSS والراوتر.
 توجد صفحات فعلية للروابط الداخلية حتى تعمل عند فتحها مباشرة أو تحديثها.
 
-2) Hostinger — FA-Hostinger.zip
+2) Hostinger — FA-Hostinger-v2.zip
 هذه نسخة لدومين رئيسي على استضافة Web/Cloud تدعم رفع ملفات HTML، وليست Website Builder.
 افتح File Manager للدومين، ثم public_html.
 خذ نسخة احتياطية من الملفات القديمة قبل استبدالها.
@@ -24,7 +24,7 @@
 إذا أردت الرفع داخل مجلد فرعي بدل الدومين الرئيسي، يجب تعديل base وRewriteBase وإعادة البناء.
 لا تخلطها بملفات WordPress أو .htaccess لموقع آخر؛ استخدم مجلد دومين مخصصًا للموقع.
 
-3) تعديل الكود — FA-Source-Code.zip
+3) تعديل الكود — FA-Source-Code-v2.zip
 فك الضغط وافتح fa-source في VS Code.
 اقرأ README-AR.md: يحتوي خريطة الملفات وأوامر التشغيل والبناء.
 الأوامر من Terminal داخل مجلد المشروع:
